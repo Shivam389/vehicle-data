@@ -3,7 +3,6 @@ import './App.css';
 import {faker} from '@faker-js/faker';
 import BarChart from 'react-bar-chart';
 import PaginatedItems from "./PaginatedItems";
-import Collapsible from "react-collapsible";
 import {PieChart, pieChartDefaultProps} from "react-minimal-pie-chart";
 import {
   List,
@@ -12,23 +11,23 @@ import {
   CellMeasurerCache,
 } from "react-virtualized";
 
-const margin = {top: 50, right: 50, bottom: 100, left: 60};
+const margin = {top: 20, right: 20, bottom: 80, left: 20};
 
 function App(){  
   const [data, setData] = useState([]);
   const [perPage, setPerPage]=useState(2);         //for pagination
-  const [filteredData, setFilteredData]= useState(data);
+  const [filteredData, setFilteredData]= useState([]);
 
   const cache = React.useRef(                      //for user list virtualizer
     new CellMeasurerCache({
       fixedWidth: true,
-      defaultHeight: 150,
+      defaultHeight: 60,
     })
   );
 
   useEffect(()=>{                                 //Generate fake data
     setData(
-      [...Array(100).keys()].map((key) => {
+      [...Array(10000).keys()].map((key) => {
         return {
           ID : key,
           Username : faker.internet.userName(),
@@ -45,12 +44,17 @@ function App(){
   useEffect(()=>{
     setPerPage(10);
   },[]);
+
+  useEffect(()=>{
+    setFilteredData(data);
+    resetFilter();
+  },[data]);
   
   var withuser=[];                                //unique cars for pagination
   var uniqueModels = [...new Set(data.map(item => item.CarModel))];
   
   for(let i in uniqueModels){                     //unique cars with their users
-    withuser.push({model:uniqueModels[i], users:data.filter(user=>user.CarModel==uniqueModels[i])})
+    withuser.push({model:uniqueModels[i], users:data.filter(user=>user.CarModel===uniqueModels[i])})
   }
                                                   //number of users for each country
   var userData = data.reduce( (acc, o) => (acc[o.Address] = (acc[o.Address] || 0)+1, acc), {} );
@@ -104,13 +108,9 @@ function App(){
     setFilteredData(data.filter(user => (user.Age >= 55)));
   }
   //filters for pie charts
-  const defaultLabelStyle = {
-    fontSize: '5px',
-    fontFamily: 'sans-serif',
-  };
                                                         //Age of Cars in use for pie chart
   var carAgeData = filteredData.reduce( (acc, o) => (acc[o.CarAge] = (acc[o.CarAge] || 0)+1, acc), {} );
- 
+
   const carAgePieData = [];                             //converting carAge data in pie chart input format
   Object.keys(carAgeData).forEach(key => carAgePieData.push({
    text: key,
@@ -121,7 +121,7 @@ function App(){
   var withModels=[];                                    
   var carMakerData = [...new Set(filteredData.map(item => item.CarMaker))];
   for(let i in carMakerData){                           //unique car makers with their users
-    withModels.push({maker:carMakerData[i], models:filteredData.filter(user=>user.CarMaker==carMakerData[i])})
+    withModels.push({maker:carMakerData[i], models:filteredData.filter(user=>user.CarMaker===carMakerData[i])})
   }
 
   const carMakerPieData = [];                     //converting carMaker data in pie chart input format
@@ -134,10 +134,14 @@ function App(){
   function showData(){                           //Toggle between two windows
     document.getElementById("global-data").style.display = "block";
     document.getElementById("car-models").style.display = "none";
+    document.getElementById("data-button").style.backgroundColor = "rgb(214, 214, 214)";
+    document.getElementById("model-button").style.backgroundColor = "white";
   }
   function showCars(){
     document.getElementById("global-data").style.display = "none";
-    document.getElementById("car-models").style.display = "block";    
+    document.getElementById("car-models").style.display = "block";  
+    document.getElementById("data-button").style.backgroundColor = "white";
+    document.getElementById("model-button").style.backgroundColor = "rgb(214, 214, 214)";  
   }
   return (
      <div className="main">                      
@@ -160,7 +164,6 @@ function App(){
               rowCount={data.length}
               rowRenderer={({ key, index, style, parent }) => {
                 const user = data[index];
-
                 return (
                   <CellMeasurer
                     key={key}
@@ -169,19 +172,9 @@ function App(){
                     columnIndex={0}
                     rowIndex={index}
                   >
-                    <div className="user-div" style={style}>
-                    <Collapsible trigger={user.Username}>
-                          <div>
-                            <ul>
-                              <li>Address:{user.Address}</li>
-                              <li>Age:{user.Age}</li>
-                              <li>CarAge:{user.CarAge}</li>
-                              <li>CarMaker:{user.CarMaker}</li>
-                              <li>CarModel:{user.CarModel}</li>
-                          </ul>
-                          </div>
-                    </Collapsible>
-                    </div>
+                  <div className="user-div" style={style}>
+                    {user.Username}
+                  </div>
                   </CellMeasurer>
                 );
               }}
@@ -202,7 +195,7 @@ function App(){
             <h3>Bar chart with number of user for each country.</h3>
             <BarChart 
                 ylabel="Users"
-                width={900}
+                width={1800}
                 margin={margin}
                 height={400}
                 data={barData}
@@ -224,26 +217,40 @@ function App(){
                     <PieChart
                       data={carAgePieData}
                       radius={pieChartDefaultProps.radius}
-                      label={({ dataEntry }) => Math.round(dataEntry.percentage) + '%'}
-                      labelStyle={defaultLabelStyle}
+                      label={({ dataEntry }) => dataEntry.value}
+                      labelStyle={(index) => ({
+                        fill: "black",
+                        fontSize: '5px',
+                        fontFamily: 'sans-serif',
+                      })}
+                      //onMouseOver={(e, segmentIndex)=>{console.log(carAgePieData[segmentIndex].text)}}
+                      labelPosition={90}
                     />
-                    <div className="legend">
-                      <ul id="pie-list">
-                        {carAgePieData.map(user => (
-                            <li style={{color: user.color, padding:"0 10px"}}>{user.text} Years</li>
-                        ))}
-                      </ul>
-                    </div>
                   </div>
+                   <div className="legend">
+                     <ul id="pie-list">
+                       {carAgePieData.map(user => (
+                           <li style={{color: user.color, padding:"0 10px"}}>{user.text} Years</li>
+                       ))}
+                     </ul>
+                   </div>
+                  
 
                 <h3>Pie chart for car manufacturers around globe</h3>
                   <div id="pie">
                     <PieChart
                       data={carMakerPieData}
                       radius={pieChartDefaultProps.radius}
-                      label={({ dataEntry }) => Math.round(dataEntry.percentage) + '%'}
-                      labelStyle={defaultLabelStyle}
+                      label={({ dataEntry }) => dataEntry.value}
+                      labelStyle={(index) => ({
+                        fill: 'black',
+                        fontSize: '5px',
+                        fontFamily: 'sans-serif',
+                      })}
+                      //onMouseOver={(e, segmentIndex)=>{console.log(carMakerPieData[segmentIndex].text)}}
+                      labelPosition={90}
                     />
+                  </div>
                     <div className="legend">
                       <ul id="pie-list">
                         {carMakerPieData.map(user => (
@@ -251,7 +258,7 @@ function App(){
                         ))}
                       </ul>
                     </div>
-                  </div>
+                  
               </div>
             </div>
           </div>

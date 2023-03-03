@@ -7,11 +7,11 @@ function Items({ currentItems }) {
     <div className="items">
     {currentItems && currentItems.map((item) => (
       <div>
-        <Collapsible trigger={item.model} >
+        <Collapsible className="page-collapse" trigger={item.model} >
             <ul>
                 <h5>Users:</h5>
                 {item.users.map(user => (
-                    <li>{user.Username}</li>
+                    <li key={user.ID}>{user.Username}</li>
                 ))}
             </ul>
         </Collapsible>
